@@ -1,7 +1,7 @@
 # SmartThings Edge Driver for LAN motion devices
 
 ## Description
-This is a Samsung SmartThings Edge driver that provides the ability to create generic motion sensor devices for LAN-based devices and applications.  The driver requires the **forwarding bridge server** (https://github.com/toddaustin07/edgebridge) to act as an intermediary between the hub-based Edge driver and the LAN device/application.  This allows these LAN-based devices and applications to send extemparaneous HTTP requests to the driver without requiring more sophsiticated peer-to-peer connection code on both sides.  Devices & applications that allow for a simple HTTP request URL to be configured that is sent upon an event trigger can thus be integrated simply with SmartThings
+This is a Samsung SmartThings Edge driver that provides the ability to create generic motion sensor devices for LAN-based devices and applications.  The driver requires the **forwarding bridge server** (https://github.com/toddaustin07/edgebridge) to act as an intermediary between the hub-based Edge driver and the LAN device/application.  This allows these LAN-based devices and applications to send extemparaneous HTTP requests to the driver without requiring more sophsiticated peer-to-peer connection code on both sides.  Devices & applications that allow for a simple HTTP request URL to be configured and sent upon an event trigger can thus be integrated simply with SmartThings.
 
 ### Features
 - Each SmartThings device includes both a motion sensor and a tamper detector capability.
