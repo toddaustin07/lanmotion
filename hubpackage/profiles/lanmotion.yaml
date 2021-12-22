@@ -1,0 +1,62 @@
+name: lanmotion.v1
+components:
+- id: main
+  capabilities:
+    - id: motionSensor
+      version: 1
+    - id: tamperAlert
+      version: 1
+    - id: partyvoice23922.createanother
+      version: 1
+  categories:
+    - name: MotionSensor
+preferences:
+  - title: "Auto state revert"
+    name: autorevert
+    description: "Select behavior"
+    required: true
+    preferenceType: enumeration
+    definition:
+      options:
+        yesauto: "Auto-revert"
+        noauto: "No auto-revert"
+      default: noauto
+  - title: "Auto-revert delay"
+    name: revertdelay
+    description: "Number of seconds"
+    required: false
+    preferenceType: integer
+    definition:
+      minimum: 1
+      maximum: 60
+      default: 5
+  - title: "LAN Device Name"
+    name: devicename
+    description: "Identifying name of LAN device"
+    required: true
+    preferenceType: string
+    definition:
+      stringType: text
+      minLength: 3
+      maxLength: 36
+      default: "mydevice"
+  - title: "LAN Device Address"
+    name: deviceaddr
+    description: "IP address of LAN device"
+    required: true
+    preferenceType: string
+    definition:
+      stringType: text
+      minLength: 7
+      maxLength: 15
+      default: "192.168.1.n"
+  - title: "Bridge Address"
+    name: bridgeaddr
+    description: "IP:Port addr of Edge Bridge"
+    required: true
+    preferenceType: string
+    definition:
+      stringType: text
+      minLength: 10
+      maxLength: 21
+      default: "192.168.1.n:8088"
