@@ -43,7 +43,7 @@ Where the endpoints following the name must be included exactly as shown.
 - Don't forget to close the web browser page when done, or your device battery could get drained down
 
 ### Blue Iris camera
-The Blue Iris server allows for configuring actions for a camera whenever it detects motion.  These actions can include a web request.  Today, this is typically directed at a cloud-based SmartApp for SmartThings integration.  But with this Edge driver, the web requests can be directed to the bridge server and forwarded to an Edge driver for 100% local execution.  The forwarding bridge server can be run on the same machine as the Blue Iris server.
+The Blue Iris server allows for configuring actions for a camera whenever it detects motion.  These actions can include a web request.  Today, this is typically directed at a cloud-based SmartApp for SmartThings integration.  But using this Edge driver, the web requests can be directed to the bridge server and forwarded to this Edge driver for 100% local execution.  The forwarding bridge server can be run on the same machine as the Blue Iris server.
 
 #### Blue Iris Configuration
 
