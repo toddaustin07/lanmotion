@@ -73,7 +73,7 @@ Once the driver is available on the hub, the mobile app is used to perform an Ad
 
 Before the SmartThings device can be operational, the forwarding bridge server must be running on a computer on the same LAN as the SmartThings hub.  See the readme file for more information (https://github.com/toddaustin07/edgebridge/blob/main/README.md)
 
-If the bridge server is running, the new SmartThings LAN Motion Device can be configured by going to the device details screen and tapping the 3 vertical dots in the upper right corner and then selecting Settings.  There are four options that will be displayed:
+If the bridge server is running, the new SmartThings LAN Motion Device can be configured by going to the device details screen and tapping the 3 vertical dots in the upper right corner and then selecting Settings.  There are five options that will be displayed:
 * Auto-revert - this option allows you to control the behavior of the SmartThings device when it receives an active motion or tamper detected message from the physical device via the bridge server.  Set to 'Auto-revert' to automatically revert back to motion inactive/tamper clear, or to 'No auto-revert' (leave in active/detected state)
 * Auto-revert delay - If the Auto-revert behavior was selected above, then this is the number of seconds you can configure before reverting back to inactive/clear.
 * LAN Device Name - short name (no spaces/no special characters) of your device; must match what was configured in the HTTP endpoint string on the device
