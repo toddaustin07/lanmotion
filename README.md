@@ -48,7 +48,7 @@ The Blue Iris server allows for configuring actions for a camera whenever it det
 #### Blue Iris Configuration
 
 - Go into the triggers and actions configuration, create a new action, and select **Web request or MQTT** from the action set list
-- Select 'http://' from the drop down in front of the address box
+- Select 'http://' from the drop-down list in front of the address box
 - In the address box, enter the forwarding bridge server IP:port address plus endpoint string; for example:
 ```
 192.168.1.140:8088/<name>/motion/active
