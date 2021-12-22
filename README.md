@@ -37,7 +37,7 @@ Where */tamper/detected* must be included exactly as shown.
 http://192.168.1.140:8088/<name>/motion/inactive
 http://192.168.1.140:8088/<name>/tamper/clear
 ```
-Where the endpoints must be included exactly as shown.
+Where the endpoints following the name must be included exactly as shown.
 
 - Click the **Save** button
 - Don't forget to close the web browser page when done, or your device battery could get drained down
