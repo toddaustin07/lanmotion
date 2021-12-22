@@ -80,5 +80,5 @@ If the bridge server is running, the new SmartThings LAN Motion Device can be co
 * LAN Device Address - this is the IP address of the physical device or application; this should be a **static IP address**
 * Bridge Address - this is the IP and port number address of the forwarding bridge server; this should be a static IP address.  The server port number can be configured by the user (see above), but **defaults to 8088**.
 
-Once the Bridge address is configured, the driver will attempt to connect.  Messages should be visible on the server message console.
+Once the Bridge address is configured, the driver will attempt to connect and register with it.  Messages will be available on the bridge server message console.
 
