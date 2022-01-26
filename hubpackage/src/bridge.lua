@@ -20,15 +20,16 @@
 
 --]]
 
-local cosock = require "cosock" 
+local cosock = require "cosock"
 local socket = require "cosock.socket"
 local log = require "log"
+local Thread = require "st.thread"
 
 local listen_ip = "0.0.0.0"
 local listen_port = 0
 local CLIENTSOCKTIMEOUT = 2
-local serversock
-local channelID
+local bridge_thread
+local handler_id
 local server_ip
 local server_port
 local callback
@@ -171,13 +172,12 @@ local function watch_socket(_, sock)
 
   local client, accept_err = sock:accept()
 
-  log.debug("Accepted connection from", client:getpeername())
-
   if accept_err ~= nil then
+    if accept_err == 'timeout' then return end
     log.info("Connection accept error: " .. accept_err)
-    listen_sock:close()
     return
   end
+  log.debug("Accepted connection from", client:getpeername())
 
   client:settimeout(1)
 
@@ -246,23 +246,29 @@ end
 local function start_bridge_server(driver)
 
   -- Startup Server
-  serversock = init_serversocket()
+  local serversock = init_serversocket()
   server_ip, server_port = serversock:getsockname()
   log.info(string.format('Server started at %s:%s', server_ip, server_port))
-
-  channelID = driver:register_channel_handler(serversock, watch_socket, 'server')
+  if not bridge_thread then
+    bridge_thread = Thread(driver, "bridge thread")
+  end
+  if handler_id then
+    bridge_thread.unregister_channel_handler(handler_id)
+  end
+  
+  handler_id = bridge_thread.register_channel_handler(serversock, watch_socket)
 
 end
 
 
 local function shutdown(driver)
-
   log.debug ('Shutting down Bridge server')
-  driver:unregister_channel_handler(channelID)
-  log.debug ('\tChannel unregistered') 
-  serversock:close()
-  log.debug ('\tServer socket closed')
-
+  if handler_id and bridge_thread then
+    bridge_thread.unregister_channel_handler(handler_id)
+  end
+  if bridge_thread then
+    bridge_thread:close()
+  end
 end
 
 return {
