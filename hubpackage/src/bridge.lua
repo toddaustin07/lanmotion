@@ -254,6 +254,7 @@ local function start_bridge_server(driver)
   end
   if handler_id then
     bridge_thread.unregister_channel_handler(handler_id)
+    
   end
   
   handler_id = bridge_thread.register_channel_handler(serversock, watch_socket)
