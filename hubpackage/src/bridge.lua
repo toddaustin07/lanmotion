@@ -253,11 +253,11 @@ local function start_bridge_server(driver)
     bridge_thread = Thread(driver, "bridge thread")
   end
   if handler_id then
-    bridge_thread.unregister_channel_handler(handler_id)
+    bridge_thread.unregister_socket(handler_id)
     
   end
   
-  handler_id = bridge_thread.register_channel_handler(serversock, watch_socket)
+  handler_id = bridge_thread.register_socket(serversock, watch_socket)
 
 end
 
@@ -265,7 +265,7 @@ end
 local function shutdown(driver)
   log.debug ('Shutting down Bridge server')
   if handler_id and bridge_thread then
-    bridge_thread.unregister_channel_handler(handler_id)
+    bridge_thread.unregister_socket(handler_id)
   end
   if bridge_thread then
     bridge_thread:close()
