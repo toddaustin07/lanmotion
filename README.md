@@ -1,10 +1,10 @@
-# SmartThings Edge Driver for LAN motion devices
+# SmartThings Edge Driver for LAN-based motion devices
 
 ## Description
 This is a Samsung SmartThings Edge driver that provides the ability to create generic motion sensor devices for LAN-based devices and applications.  The driver requires the **forwarding bridge server** (https://github.com/toddaustin07/edgebridge) to act as an intermediary between the hub-based Edge driver and the LAN device/application.  This allows these LAN-based devices and applications to send extemparaneous HTTP requests to the driver without requiring more sophsiticated peer-to-peer connection code on both sides.  Devices & applications that allow for a simple HTTP request URL to be configured and sent upon an event trigger can thus be integrated simply with SmartThings.
 
 ### Features
-- Each SmartThings device includes both a motion sensor and a tamper detector capability.
+- Each SmartThings device includes both a motion sensor and a tamper alert capability.
 - Any number of devices can be created
 - SmartThings Automation routines and Rules can be created to use the motion and tamper states as IF conditions
 
@@ -43,7 +43,7 @@ Where the endpoints following the name must be included exactly as shown.
 - Don't forget to close the web browser page when done, or your device battery could get drained down
 
 ### Blue Iris camera
-The Blue Iris server allows for configuring actions for a camera whenever it detects motion.  These actions can include a web request.  Today, this is typically directed at a cloud-based SmartApp for SmartThings integration.  But with this solution, the web requests can be directed to the bridge server and forwarded to an Edge driver for 100% local execution.  The forwarding bridge server can be run on the same machine as the Blue Iris server.
+The Blue Iris server allows for configuring actions for a camera whenever it detects motion.  These actions can include a web request.  Today, this is typically directed at a cloud-based SmartApp for SmartThings integration.  But using this Edge driver, the web requests can be directed to the bridge server and forwarded to this Edge driver for 100% local execution.  The forwarding bridge server can be run on the same machine as the Blue Iris server.
 
 #### Blue Iris Configuration
 
@@ -80,5 +80,5 @@ If the bridge server is running, the new SmartThings LAN Motion Device can be co
 * LAN Device Address - this is the IP address of the physical device or application; this should be a **static IP address**
 * Bridge Address - this is the IP and port number address of the forwarding bridge server; this should be a static IP address.  The server port number can be configured by the user (see above), but **defaults to 8088**.
 
-Once the Bridge address is configured, the driver will attempt to connect.  Messages should be visible on the server message console.
+Once the Bridge address is configured, the driver will attempt to connect and register with it.  Messages will be available on the bridge server message console.
 
