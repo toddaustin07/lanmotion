@@ -8,8 +8,13 @@ components:
       version: 1
     - id: partyvoice23922.createanother
       version: 1
+    - id: momentary
+      version: 1
   categories:
     - name: MotionSensor
+metadata:
+  vid: ddb74430-ba54-3543-848d-bc49bb0c4b43
+  mnmn: SmartThingsCommunity
 preferences:
   - title: "Auto state revert"
     name: autorevert

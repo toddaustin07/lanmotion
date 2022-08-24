@@ -30,14 +30,13 @@ local log = require "log"
 local bridge = require "bridge"
 
 -- Custom Capabiities
-local capdefs = require "capabilitydefs"
-local cap_createdev = capabilities.build_cap_from_json_string(capdefs.createdev_cap)
-capabilities["partyvoice23922.createanother"] = cap_createdev
+local cap_createdev = capabilities["partyvoice23922.createanother"]
 
 -- Module variables
 local thisDriver = {}
 local initialized = false
-local lastinfochange = socket.gettime()
+local device_init_counter = 0
+local BRIDGESERVER_INITIALIZED = false
 local motionreset = {}
 local tamperreset = {}
 
@@ -50,6 +49,25 @@ local function resetmotion()
       if device.id == id then
         
         if (socket.gettime() - info.starttime) > tonumber(device.preferences.revertdelay) then
+          device:emit_event(capabilities.motionSensor.motion('inactive'))
+          motionreset[id] = nil
+        end
+
+      end
+    end
+  end
+  
+end
+
+local function resetmotion_1sec()
+
+  local device_list = thisDriver:get_devices()
+  
+  for id, info in pairs(motionreset) do
+    for _, device in ipairs(device_list) do
+      if device.id == id then
+        
+        if (socket.gettime() - info.starttime) >= 1 then
           device:emit_event(capabilities.motionSensor.motion('inactive'))
           motionreset[id] = nil
         end
@@ -106,24 +124,27 @@ end
 
 local function trigger_callback(devaddr, method, endpoint)
 
-  local device_list = thisDriver:get_devices()
+  if (method == 'GET') or (method == 'Get') or (method == 'get') then
 
-  for _, device in ipairs(device_list) do
-
-    if device.preferences.deviceaddr ==  devaddr then
+    local pathparts = split_path(endpoint)
+          
+    local name = pathparts[1]
+    local cmd = pathparts[2]
+    local state = pathparts[3]
     
-      if (method == 'GET') or (method == 'Get') or (method == 'get') then
-      
-        local pathparts = split_path(endpoint)
-        
-        local name = pathparts[1]
-        local cmd = pathparts[2]
-        local state = pathparts[3]
-        
-        log.info (string.format('Message from %s: command=%s, state=%s', name, cmd, state))
+    local device_list = thisDriver:get_devices()
+    
+    local foundflag = false
+
+    for _, device in ipairs(device_list) do
+
+      if device.preferences.deviceaddr ==  devaddr then
         
         if device.preferences.devicename == name then
-        
+          
+          log.info (string.format('Message from %s: command=%s, state=%s', name, cmd, state))
+          foundflag = true
+          
           if cmd == 'motion' then
         
             if state == 'active' then
@@ -152,15 +173,20 @@ local function trigger_callback(devaddr, method, endpoint)
             else
               log.error ('Unrecognized command state:', state)
             end
+          
           else
-            log.error ('Unknown endpoint command:', cmd)
+            log.error ('Unknown endpoint command:', cmd)  
           end
         end
-          
-      else
-        log.error ('Unexpected HTTP method received:', method)
       end
     end
+    
+    if not foundflag then
+      log.warn ('No matching configured name found')
+    end
+    
+  else
+    log.error ('Unexpected HTTP method received:', method)
   end
   
 end
@@ -190,12 +216,88 @@ local function create_device(driver)
 
 end
 
+
+local function retry_register()
+
+  local device_list = thisDriver:get_devices()
+  local unregistered = 0
+  
+  for _, device in ipairs(device_list) do
+  
+    if device:get_field('registered') == false then
+    
+      if bridge.register(device.st_store.driver.id, device.preferences.bridgeaddr, device.preferences.deviceaddr) then
+        device:online()
+        device:set_field('registered', true)
+        log.info ('Registration with Bridge Server successful for', device.label)
+      else
+        log.error ('Registration with Bridge Server failed for', device.label)
+        unregistered = unregistered + 1
+      end
+    end
+  end
+  
+  if unregistered > 0 then
+    log.info('Scheduling registration retry')
+    thisDriver:call_with_delay(20, retry_register, 'registration-retry')
+  end
+end
+
+
+local function do_register(device)
+
+  if bridge.register(device.st_store.driver.id, device.preferences.bridgeaddr, device.preferences.deviceaddr) then
+    device:online()
+    device:set_field('registered', true)
+    log.info ('Registration with Bridge Server successful')
+  else
+    log.error ('Registration with Bridge Server failed')
+    device:offline()
+    device:set_field('registered', false)
+  end
+  
+end
+
+
+local function clear_registration(id, bridgeaddr, cleared_devaddr)
+
+  local device_list = thisDriver:get_devices()
+
+  -- see if there are any more devices still using deleted device's deviceaddr config setting
+
+  local foundflag = false
+  for _, dev in ipairs(device_list) do
+    if dev.preferences.bridgeaddr == bridgeaddr and dev.preferences.deviceaddr == cleared_devaddr then
+      foundflag = true
+    end
+  end
+    
+  -- if none found, then delete the registration for this deviceaddr
+  if not foundflag then
+    if bridge.delete(id, bridgeaddr, cleared_devaddr) then
+      log.info (string.format('Bridge server %s registration deleted for device at: %s', bridgeaddr, cleared_devaddr))
+    end
+  end
+
+end
+
 -- CAPABILITY HANDLERS
 
 local function handle_createdev(driver, device, command)
 
   create_device(driver)
 
+end
+
+local function handle_button(driver, device, command)
+
+  log.info ('Momentary button invoked from automation')
+  
+  device:emit_event(capabilities.motionSensor.motion('active'))
+  motionreset[device.id] = {}
+  motionreset[device.id]['starttime'] = socket.gettime()
+  driver:call_with_delay(1, resetmotion_1sec)
+  
 end
 
 ------------------------------------------------------------------------
@@ -207,11 +309,22 @@ local function device_init(driver, device)
   
     log.debug(device.id .. ": " .. device.device_network_id .. "> INITIALIZING")
   
-    -- Startup Server
-    bridge.start_bridge_server(driver)
+    if BRIDGESERVER_INITIALIZED == false then
+      -- Startup Server
+      bridge.start_bridge_server(driver, trigger_callback)
+      BRIDGESERVER_INITIALIZED = true
+    end
     
-    -- Try to connect to bridge
-    bridge.init_bridge(device, device.preferences.bridgeaddr, device.preferences.deviceaddr, trigger_callback)
+    -- Register with server
+    device.thread:queue_event(do_register, device)
+    --do_register(device)
+
+    initialized = true
+    device_init_counter = device_init_counter + 1
+    
+    if #driver:get_devices() == device_init_counter then
+      driver:call_with_delay(10, retry_register, 'registration-retry')
+    end
 
     log.debug('Exiting device initialization')
 end
@@ -225,8 +338,6 @@ local function device_added (driver, device)
   device:emit_event(capabilities.motionSensor.motion('inactive'))
   device:emit_event(capabilities.tamperAlert.tamper('clear'))
   
-  initialized = true
-      
 end
 
 
@@ -242,11 +353,13 @@ end
 local function device_removed(driver, device)
   
   log.warn(device.id .. ": " .. device.device_network_id .. "> removed")
-  
+
+  clear_registration(device.st_store.driver.id, device.preferences.bridgeaddr, device.preferences.deviceaddr)
+
   local device_list = driver:get_devices()
-  
   if #device_list == 0 then
-    log.warn ('All devices removed; driver disabled')
+    log.warn ('All devices removed')
+    initialized = false
   end
   
 end
@@ -259,49 +372,42 @@ local function handler_driverchanged(driver, device, event, args)
 end
 
 
+local function shutdown_handler(driver, event)
+
+  if event == 'shutdown' then
+    bridge.shutdown(driver)
+    log.warn('Bridge server shutdown')
+  end
+end
+
+
 local function handler_infochanged (driver, device, event, args)
 
   log.debug ('Info changed handler invoked')
 
-  local timenow = socket.gettime()
-  local timesincelast = timenow - lastinfochange
-
-  log.debug('Time since last info_changed:', timesincelast)
-  
-  lastinfochange = timenow
-  
-  if timesincelast > 1 then
-
   -- Did preferences change?
-    if args.old_st_store.preferences then
-    
-      if args.old_st_store.preferences.bridgeaddr ~= device.preferences.bridgeaddr then
-        log.info ('Bridge address changed to: ', device.preferences.bridgeaddr)
-        bridge.init_bridge(device, device.preferences.bridgeaddr, device.preferences.deviceaddr, trigger_callback)
-        
-      elseif args.old_st_store.preferences.autorevert ~= device.preferences.autorevert then  
-        log.info ('Auto revert changed to: ', device.preferences.autorevert)
-      
-      elseif args.old_st_store.preferences.revertdelay ~= device.preferences.revertdelay then 
-        log.info ('Auto revert delay changed to: ', device.preferences.revertdelay)
-      
-      elseif args.old_st_store.preferences.devicename ~= device.preferences.devicename then 
-        log.info ('Device name changed to: ', device.preferences.devicename)
-      elseif args.old_st_store.preferences.deviceaddr ~= device.preferences.deviceaddr then 
-        log.info ('Device address changed to: ', device.preferences.deviceaddr)
-      
-      else
-        -- Assume driver is restarting - shutdown everything
-        log.debug ('****** DRIVER RESTART ASSUMED ******')
-        
-        --bridge.shutdown(driver)
-      end
-          
-    end
-  else
-    log.error ('Duplicate info_changed assumed - IGNORED')  
-  end
+  if args.old_st_store.preferences then
   
+    if args.old_st_store.preferences.bridgeaddr ~= device.preferences.bridgeaddr then
+      log.info ('Bridge address changed to: ', device.preferences.bridgeaddr)
+      do_register(device)
+     
+    elseif args.old_st_store.preferences.deviceaddr ~= device.preferences.deviceaddr then 
+      log.info ('Device address changed to: ', device.preferences.deviceaddr)
+      clear_registration(device.st_store.driver.id, device.preferences.bridgeaddr, args.old_st_store.preferences.deviceaddr)
+      do_register(device)
+      
+    elseif args.old_st_store.preferences.autorevert ~= device.preferences.autorevert then  
+      log.info ('Auto revert changed to: ', device.preferences.autorevert)
+    
+    elseif args.old_st_store.preferences.revertdelay ~= device.preferences.revertdelay then 
+      log.info ('Auto revert delay changed to: ', device.preferences.revertdelay)
+    
+    elseif args.old_st_store.preferences.devicename ~= device.preferences.devicename then 
+      log.info ('Device name changed to: ', device.preferences.devicename)
+    
+    end
+  end
 end
 
 
@@ -332,15 +438,18 @@ thisDriver = Driver("thisDriver", {
     doConfigure = device_doconfigure,
     removed = device_removed
   },
-  
+  driver_lifecycle = shutdown_handler,
   capability_handlers = {
     [cap_createdev.ID] = {
       [cap_createdev.commands.push.NAME] = handle_createdev,
     },
+    [capabilities.momentary.ID] = {
+      [capabilities.momentary.commands.push.NAME] = handle_button,
+    },
   }
 })
 
-log.info ('LAN Motion Sensor Driver v1.0 Started')
+log.info ('LAN Motion Sensor Driver v1.2 Started')
 
 
 thisDriver:run()
